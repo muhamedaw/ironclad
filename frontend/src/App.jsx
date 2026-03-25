@@ -7,11 +7,14 @@ import { PageLoader } from './components/skeleton/Skeletons';
 import './styles/globals.css';
 
 // ── Code splitting: lazy-load all pages ─────────────────────────
-const HomePage = lazy(() => import('./pages/HomePage'));
+const HomePage          = lazy(() => import('./pages/HomePage'));
 const ProductDetailPage = lazy(() => import('./pages/ProductDetailPage'));
-const CartPage = lazy(() => import('./pages/CartPage'));
-const CheckoutPage = lazy(() => import('./pages/CheckoutPage'));
-const LoginPage = lazy(() => import('./pages/LoginPage'));
+const CartPage          = lazy(() => import('./pages/CartPage'));
+const CheckoutPage      = lazy(() => import('./pages/CheckoutPage'));
+const LoginPage         = lazy(() => import('./pages/LoginPage'));
+const AdminDashboard    = lazy(() => import('./AdminDashboard'));
+const CheckoutApp       = lazy(() => import('./CheckoutApp'));
+const PageBuilder       = lazy(() => import('./PageBuilder'));
 
 // ── Layout wrapper ───────────────────────────────────────────────
 function AppLayout({ children, hideFooter = false }) {
@@ -26,7 +29,6 @@ function AppLayout({ children, hideFooter = false }) {
   );
 }
 
-// ── Full-page layout (no navbar/footer, e.g., login) ─────────────
 function FullPageLayout({ children }) {
   return <>{children}</>;
 }
@@ -39,50 +41,31 @@ export default function App() {
         <CartProvider>
           <ToastProvider>
             <FilterProvider>
-              <Suspense fallback={<div className="min-h-screen bg-cream-50 flex items-center justify-center"><PageLoader /></div>}>
+              <Suspense fallback={<div className="min-h-screen flex items-center justify-center"><PageLoader /></div>}>
                 <Routes>
-                  {/* Main shop */}
-                  <Route path="/" element={
-                    <AppLayout>
-                      <HomePage />
-                    </AppLayout>
-                  } />
 
-                  {/* Product detail */}
-                  <Route path="/product/:id" element={
-                    <AppLayout>
-                      <ProductDetailPage />
-                    </AppLayout>
-                  } />
+                  {/* ── Main shop ── */}
+                  <Route path="/" element={<AppLayout><HomePage /></AppLayout>} />
+                  <Route path="/product/:id" element={<AppLayout><ProductDetailPage /></AppLayout>} />
+                  <Route path="/cart" element={<AppLayout><CartPage /></AppLayout>} />
+                  <Route path="/checkout" element={<AppLayout hideFooter><CheckoutPage /></AppLayout>} />
 
-                  {/* Cart */}
-                  <Route path="/cart" element={
-                    <AppLayout>
-                      <CartPage />
-                    </AppLayout>
-                  } />
+                  {/* ── Auth ── */}
+                  <Route path="/login"    element={<FullPageLayout><LoginPage /></FullPageLayout>} />
+                  <Route path="/register" element={<FullPageLayout><LoginPage /></FullPageLayout>} />
 
-                  {/* Checkout */}
-                  <Route path="/checkout" element={
-                    <AppLayout hideFooter>
-                      <CheckoutPage />
-                    </AppLayout>
-                  } />
+                  {/* ── Admin Dashboard ── */}
+                  <Route path="/admin/*" element={<FullPageLayout><AdminDashboard /></FullPageLayout>} />
 
-                  {/* Auth — full page, no navbar */}
-                  <Route path="/login" element={
-                    <FullPageLayout>
-                      <LoginPage />
-                    </FullPageLayout>
-                  } />
-                  <Route path="/register" element={
-                    <FullPageLayout>
-                      <LoginPage />
-                    </FullPageLayout>
-                  } />
+                  {/* ── Checkout flow ── */}
+                  <Route path="/checkout-v2" element={<FullPageLayout><CheckoutApp /></FullPageLayout>} />
 
-                  {/* Catch-all */}
+                  {/* ── Page Builder ── */}
+                  <Route path="/builder" element={<FullPageLayout><PageBuilder /></FullPageLayout>} />
+
+                  {/* ── Catch-all ── */}
                   <Route path="*" element={<Navigate to="/" replace />} />
+
                 </Routes>
               </Suspense>
             </FilterProvider>
