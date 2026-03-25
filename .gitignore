@@ -1,0 +1,44 @@
+# Dependencies
+node_modules/
+.npm
+
+# Build outputs
+dist/
+build/
+.next/
+
+# Environment secrets — NEVER commit these
+.env
+.env.local
+.env.production
+.env.staging
+**/.env
+!**/.env.example
+
+# Logs
+logs/
+*.log
+
+# Database
+*.sql.gz
+backups/
+
+# OS / Editor
+.DS_Store
+.idea/
+.vscode/settings.json
+*.swp
+
+# Testing
+coverage/
+.nyc_output/
+
+# Docker local volumes
+docker/volumes/
+
+# Vercel
+.vercel/
+
+# Misc
+*.pem
+*.key

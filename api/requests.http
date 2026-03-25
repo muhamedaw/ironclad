@@ -1,0 +1,362 @@
+###############################################################
+# IRONCLAD API — Complete HTTP Request Examples
+# Base URL: http://localhost:4000/api/v1
+# Use with VS Code REST Client, Postman, or curl
+###############################################################
+
+@base = http://localhost:4000/api/v1
+@contentType = Content-Type: application/json
+
+# Paste your access token here after login
+@token = YOUR_ACCESS_TOKEN_HERE
+@adminToken = YOUR_ADMIN_TOKEN_HERE
+
+
+# ─────────────────────────────────────────────────────────────
+# HEALTH CHECK
+# ─────────────────────────────────────────────────────────────
+
+### GET /health
+GET {{base}}/health
+
+
+# ─────────────────────────────────────────────────────────────
+# AUTH — REGISTER
+# ─────────────────────────────────────────────────────────────
+
+### POST /auth/register — Create a new customer account
+POST {{base}}/auth/register
+{{contentType}}
+
+{
+  "first_name": "Jane",
+  "last_name": "Mechanic",
+  "email": "jane@example.com",
+  "password": "Password1",
+  "phone": "+1-555-123-4567"
+}
+
+# Expected: 201 Created
+# {
+#   "success": true,
+#   "message": "Registration successful",
+#   "data": {
+#     "user": { "id": "...", "email": "jane@example.com", "role": "customer", ... },
+#     "accessToken": "eyJhbGci..."
+#   }
+# }
+
+# ─────────────────────────────────────────────────────────────
+# AUTH — LOGIN
+# ─────────────────────────────────────────────────────────────
+
+### POST /auth/login
+POST {{base}}/auth/login
+{{contentType}}
+
+{
+  "email": "jane@example.com",
+  "password": "Password1"
+}
+
+# Copy the accessToken from the response into @token above
+
+### POST /auth/login — Admin
+POST {{base}}/auth/login
+{{contentType}}
+
+{
+  "email": "admin@ironclad.dev",
+  "password": "Admin1234"
+}
+
+# ─────────────────────────────────────────────────────────────
+# AUTH — TOKEN REFRESH
+# ─────────────────────────────────────────────────────────────
+
+### POST /auth/refresh  (refresh token sent as httpOnly cookie automatically)
+POST {{base}}/auth/refresh
+
+# ─────────────────────────────────────────────────────────────
+# AUTH — LOGOUT
+# ─────────────────────────────────────────────────────────────
+
+### POST /auth/logout
+POST {{base}}/auth/logout
+
+# ─────────────────────────────────────────────────────────────
+# AUTH — PROFILE
+# ─────────────────────────────────────────────────────────────
+
+### GET /auth/me
+GET {{base}}/auth/me
+Authorization: Bearer {{token}}
+
+### PUT /auth/me — Update profile
+PUT {{base}}/auth/me
+Authorization: Bearer {{token}}
+{{contentType}}
+
+{
+  "first_name": "Jane",
+  "last_name": "Updated",
+  "phone": "+1-555-999-0000"
+}
+
+### PUT /auth/me/password — Change password
+PUT {{base}}/auth/me/password
+Authorization: Bearer {{token}}
+{{contentType}}
+
+{
+  "current_password": "Password1",
+  "new_password": "NewPassword2"
+}
+
+# ─────────────────────────────────────────────────────────────
+# PRODUCTS — PUBLIC (no auth)
+# ─────────────────────────────────────────────────────────────
+
+### GET /products — All active products (default sort: featured)
+GET {{base}}/products
+
+### GET /products — Filter by brand
+GET {{base}}/products?brand=BMW
+
+### GET /products — Filter by brand + model
+GET {{base}}/products?brand=Toyota&model=Camry
+
+### GET /products — Filter by brand + model + year
+GET {{base}}/products?brand=BMW&model=3%20Series&year=2019
+
+### GET /products — Filter by category
+GET {{base}}/products?category=brakes
+
+### GET /products — Price range filter
+GET {{base}}/products?min_price=50&max_price=200
+
+### GET /products — In-stock only
+GET {{base}}/products?in_stock=true
+
+### GET /products — Featured parts
+GET {{base}}/products?featured=true
+
+### GET /products — Full-text keyword search
+GET {{base}}/products?search=brake+pads
+
+### GET /products — Sort options
+# Options: featured | price_asc | price_desc | rating | newest
+GET {{base}}/products?sort=price_asc
+
+### GET /products — Combined filter + sort + pagination
+GET {{base}}/products?brand=BMW&category=engine&in_stock=true&sort=rating&page=1&limit=10
+
+### GET /products/:id — Single product detail
+GET {{base}}/products/REPLACE_WITH_PRODUCT_UUID
+
+# ─────────────────────────────────────────────────────────────
+# PRODUCTS — ADMIN (requires admin JWT)
+# ─────────────────────────────────────────────────────────────
+
+### POST /products — Create a product
+POST {{base}}/products
+Authorization: Bearer {{adminToken}}
+{{contentType}}
+
+{
+  "name": "OEM Brake Pad Set — Front",
+  "sku": "BP-BMW-3-FRONT-001",
+  "brand": "BMW",
+  "model": "3 Series",
+  "year_from": 2015,
+  "year_to": 2023,
+  "category": "brakes",
+  "price": 89.99,
+  "original_price": 119.99,
+  "stock_quantity": 48,
+  "description": "Factory-spec ceramic brake pads. Includes all hardware and anti-squeal shims. OEM #34116860499.",
+  "images": [
+    "https://example.com/images/bp-bmw-001-a.jpg",
+    "https://example.com/images/bp-bmw-001-b.jpg"
+  ],
+  "is_featured": true,
+  "shipping_days": 2,
+  "weight_kg": 1.2
+}
+
+# Expected: 201 Created
+# {
+#   "success": true,
+#   "message": "Product created successfully",
+#   "data": { "id": "...", "sku": "BP-BMW-3-FRONT-001", ... }
+# }
+
+### PUT /products/:id — Update product (partial update supported)
+PUT {{base}}/products/REPLACE_WITH_PRODUCT_UUID
+Authorization: Bearer {{adminToken}}
+{{contentType}}
+
+{
+  "price": 79.99,
+  "stock_quantity": 60,
+  "is_featured": true
+}
+
+### DELETE /products/:id — Soft delete (paranoid, recoverable)
+DELETE {{base}}/products/REPLACE_WITH_PRODUCT_UUID
+Authorization: Bearer {{adminToken}}
+
+# ─────────────────────────────────────────────────────────────
+# ORDERS — Create
+# ─────────────────────────────────────────────────────────────
+
+### POST /orders — Place an order (customer)
+POST {{base}}/orders
+Authorization: Bearer {{token}}
+{{contentType}}
+
+{
+  "items": [
+    { "product_id": "REPLACE_WITH_PRODUCT_UUID", "quantity": 2 },
+    { "product_id": "REPLACE_WITH_ANOTHER_UUID", "quantity": 1 }
+  ],
+  "shipping_address": {
+    "street": "123 Main Street, Apt 4B",
+    "city": "New York",
+    "state": "NY",
+    "zip": "10001",
+    "country": "US"
+  },
+  "payment_method": "card",
+  "notes": "Please pack carefully — fragile parts."
+}
+
+# Expected: 201 Created
+# {
+#   "success": true,
+#   "message": "Order placed successfully",
+#   "data": {
+#     "id": "...",
+#     "order_number": "IC-20240924-A3F9K",
+#     "status": "pending",
+#     "subtotal": 259.97,
+#     "shipping_cost": 0.00,
+#     "tax": 20.80,
+#     "total": 280.77,
+#     "items": [ ... ],
+#     ...
+#   }
+# }
+
+# ─────────────────────────────────────────────────────────────
+# ORDERS — List & Detail
+# ─────────────────────────────────────────────────────────────
+
+### GET /orders — Customer: own orders
+GET {{base}}/orders
+Authorization: Bearer {{token}}
+
+### GET /orders — Customer: paginated
+GET {{base}}/orders?page=1&limit=10
+Authorization: Bearer {{token}}
+
+### GET /orders — Admin: all orders
+GET {{base}}/orders
+Authorization: Bearer {{adminToken}}
+
+### GET /orders — Admin: filter by status
+GET {{base}}/orders?status=pending
+Authorization: Bearer {{adminToken}}
+
+### GET /orders/:id — Single order detail
+GET {{base}}/orders/REPLACE_WITH_ORDER_UUID
+Authorization: Bearer {{token}}
+
+# ─────────────────────────────────────────────────────────────
+# ORDERS — Status Updates
+# ─────────────────────────────────────────────────────────────
+
+### PATCH /orders/:id/status — Customer cancels a pending order
+PATCH {{base}}/orders/REPLACE_WITH_ORDER_UUID/status
+Authorization: Bearer {{token}}
+{{contentType}}
+
+{
+  "status": "cancelled"
+}
+
+### PATCH /orders/:id/status — Admin: mark as shipped with tracking
+PATCH {{base}}/orders/REPLACE_WITH_ORDER_UUID/status
+Authorization: Bearer {{adminToken}}
+{{contentType}}
+
+{
+  "status": "shipped",
+  "tracking_number": "UPS-1Z999AA10123456784"
+}
+
+### PATCH /orders/:id/status — Admin: mark as delivered
+PATCH {{base}}/orders/REPLACE_WITH_ORDER_UUID/status
+Authorization: Bearer {{adminToken}}
+{{contentType}}
+
+{
+  "status": "delivered"
+}
+
+# ─────────────────────────────────────────────────────────────
+# ERROR RESPONSE EXAMPLES
+# ─────────────────────────────────────────────────────────────
+
+# 400 Bad Request
+# { "success": false, "message": "Content-Type must be application/json", "code": "BAD_REQUEST" }
+
+# 401 Unauthorized
+# { "success": false, "message": "No access token provided", "code": "UNAUTHORIZED" }
+
+# 403 Forbidden
+# { "success": false, "message": "Role 'customer' is not permitted to perform this action", "code": "FORBIDDEN" }
+
+# 404 Not Found
+# { "success": false, "message": "Product not found", "code": "NOT_FOUND" }
+
+# 409 Conflict
+# { "success": false, "message": "SKU 'BP-001' already exists", "code": "CONFLICT" }
+
+# 422 Unprocessable Entity (validation)
+# {
+#   "success": false,
+#   "message": "Input validation failed",
+#   "code": "UNPROCESSABLE",
+#   "errors": [
+#     { "field": "password", "message": "Password must be at least 8 characters", "value": "weak" },
+#     { "field": "email",    "message": "Must be a valid email address", "value": "notanemail" }
+#   ]
+# }
+
+# 429 Too Many Requests
+# { "success": false, "message": "Too many requests — please try again later.", "code": "RATE_LIMITED" }
+
+# ─────────────────────────────────────────────────────────────
+# CURL EXAMPLES
+# ─────────────────────────────────────────────────────────────
+
+# Register:
+# curl -X POST http://localhost:4000/api/v1/auth/register \
+#   -H "Content-Type: application/json" \
+#   -d '{"first_name":"Jane","last_name":"Doe","email":"jane@example.com","password":"Password1"}'
+
+# Login + capture token:
+# TOKEN=$(curl -s -X POST http://localhost:4000/api/v1/auth/login \
+#   -H "Content-Type: application/json" \
+#   -d '{"email":"jane@example.com","password":"Password1"}' \
+#   | python3 -c "import sys,json; print(json.load(sys.stdin)['data']['accessToken'])")
+
+# List products:
+# curl "http://localhost:4000/api/v1/products?brand=BMW&year=2020&sort=price_asc"
+
+# Create product (admin):
+# curl -X POST http://localhost:4000/api/v1/products \
+#   -H "Content-Type: application/json" \
+#   -H "Authorization: Bearer $ADMIN_TOKEN" \
+#   -d '{"name":"Test Part","sku":"TP-999","brand":"BMW","model":"X5","year_from":2018,"category":"engine","price":199.99,"stock_quantity":10}'

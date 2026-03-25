@@ -1,0 +1,80 @@
+# ── Environment files — NEVER commit these ──────────────────────────────────
+.env
+.env.local
+.env.production
+.env.staging
+.env.development.local
+.env.test.local
+.env.production.local
+**/.env
+**/.env.*
+!.env.example
+!**/.env.example
+
+# ── Node ─────────────────────────────────────────────────────────────────────
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+.npm
+.yarn/cache
+.yarn/unplugged
+.pnpm-store/
+
+# ── Build outputs ─────────────────────────────────────────────────────────────
+dist/
+build/
+.next/
+out/
+.nuxt/
+.output/
+.cache/
+
+# ── Vercel ───────────────────────────────────────────────────────────────────
+.vercel/
+
+# ── Docker ───────────────────────────────────────────────────────────────────
+# (keep Dockerfiles, ignore local volumes)
+docker/volumes/
+*.tar.gz
+
+# ── Database ─────────────────────────────────────────────────────────────────
+*.sql.gz
+backups/
+db/local/
+
+# ── Logs ─────────────────────────────────────────────────────────────────────
+logs/
+*.log
+*.log.*
+npm-debug.log*
+
+# ── OS / Editor ───────────────────────────────────────────────────────────────
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+desktop.ini
+.idea/
+.vscode/settings.json
+*.swp
+*.swo
+*~
+
+# ── Testing ───────────────────────────────────────────────────────────────────
+coverage/
+.nyc_output/
+*.lcov
+junit.xml
+
+# ── Misc ──────────────────────────────────────────────────────────────────────
+.turbo/
+*.pem
+*.key
+*.crt
+*.p12
+secrets/

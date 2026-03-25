@@ -1,0 +1,93 @@
+# docker-compose.monitoring.yml
+# ─────────────────────────────────────────────────────────────────────────────
+# Optional observability stack: Prometheus + Grafana
+#
+# Run alongside the main stack:
+#   docker compose -f docker-compose.yml -f docker-compose.monitoring.yml up -d
+#
+# Access:
+#   Grafana:    http://localhost:3001  (admin / admin — change immediately!)
+#   Prometheus: http://localhost:9090
+# ─────────────────────────────────────────────────────────────────────────────
+
+version: "3.9"
+
+services:
+
+  # ── Prometheus — scrapes /metrics from each service ──────────────
+  prometheus:
+    image: prom/prometheus:v2.52.0
+    restart: unless-stopped
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--storage.tsdb.retention.time=15d'
+      - '--web.enable-lifecycle'
+    volumes:
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus_data:/prometheus
+    ports:
+      - "9090:9090"
+    networks:
+      - backend
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:9090/-/healthy"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+
+  # ── Grafana — dashboards ──────────────────────────────────────────
+  grafana:
+    image: grafana/grafana:10.4.2
+    restart: unless-stopped
+    environment:
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_PASSWORD:-admin}
+      GF_USERS_ALLOW_SIGN_UP:     "false"
+      GF_SERVER_ROOT_URL:         ${GRAFANA_URL:-http://localhost:3001}
+      GF_INSTALL_PLUGINS:         grafana-clock-panel,grafana-piechart-panel
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./monitoring/grafana/dashboards:/etc/grafana/provisioning/dashboards:ro
+      - ./monitoring/grafana/datasources.yml:/etc/grafana/provisioning/datasources/datasources.yml:ro
+    ports:
+      - "3001:3000"
+    depends_on:
+      - prometheus
+    networks:
+      - backend
+
+  # ── Node Exporter — OS metrics (CPU, memory, disk) ───────────────
+  node-exporter:
+    image: prom/node-exporter:v1.8.0
+    restart: unless-stopped
+    command:
+      - '--path.procfs=/host/proc'
+      - '--path.sysfs=/host/sys'
+      - '--collector.filesystem.mount-points-exclude=^/(sys|proc|dev|host|etc)($$|/)'
+    volumes:
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /:/rootfs:ro
+    pid: host
+    networks:
+      - backend
+
+  # ── MySQL Exporter — DB metrics ───────────────────────────────────
+  mysql-exporter:
+    image: prom/mysqld-exporter:v0.15.1
+    restart: unless-stopped
+    environment:
+      DATA_SOURCE_NAME: "${MYSQL_USER:-ironclad}:${MYSQL_PASSWORD}@tcp(mysql:3306)/${MYSQL_DATABASE:-ironclad_db}"
+    depends_on:
+      - mysql
+    networks:
+      - backend
+
+volumes:
+  prometheus_data:
+  grafana_data:
+
+networks:
+  backend:
+    external: true
+    name: ironclad-deploy_backend

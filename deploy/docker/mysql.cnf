@@ -1,0 +1,48 @@
+# /etc/mysql/conf.d/ironclad.cnf
+# Production MySQL 8.0 tuning for a 2–4 GB RAM server
+
+[mysqld]
+
+# ── Character set ────────────────────────────────────────────────────
+character-set-server  = utf8mb4
+collation-server      = utf8mb4_unicode_ci
+
+# ── InnoDB tuning ────────────────────────────────────────────────────
+# Set to ~70% of available RAM; adjust to your instance size
+innodb_buffer_pool_size        = 512M
+innodb_buffer_pool_instances   = 2
+innodb_log_file_size           = 128M
+innodb_log_buffer_size         = 16M
+innodb_flush_log_at_trx_commit = 1   # safest (ACID)
+innodb_flush_method            = O_DIRECT
+innodb_file_per_table          = ON
+
+# ── Connection limits ────────────────────────────────────────────────
+max_connections        = 200
+max_connect_errors     = 100000
+connect_timeout        = 10
+wait_timeout           = 600
+interactive_timeout    = 600
+
+# ── Query cache (disabled in 8.0 — use ProxySQL or app-level cache) ─
+# query_cache_type = 0  (default in 8.0)
+
+# ── Slow query log (enable in staging to find N+1 queries) ───────────
+slow_query_log         = 0
+slow_query_log_file    = /var/log/mysql/slow.log
+long_query_time        = 1
+
+# ── Binary log (required for PlanetScale / PITR recovery) ────────────
+log_bin                = mysql-bin
+binlog_format          = ROW
+expire_logs_days       = 7
+max_binlog_size        = 100M
+
+# ── Security ──────────────────────────────────────────────────────────
+local_infile           = 0
+
+[client]
+default-character-set = utf8mb4
+
+[mysql]
+default-character-set = utf8mb4

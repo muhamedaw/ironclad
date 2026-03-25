@@ -1,0 +1,46 @@
+# ─── Stage 1: Build ────────────────────────────────────────────────
+FROM node:20-alpine AS builder
+
+WORKDIR /app
+
+# Copy package files first for layer caching
+COPY package*.json ./
+RUN npm ci --prefer-offline
+
+# Copy source
+COPY . .
+
+# Build production bundle
+# Build-time env vars injected here (not secrets — only public vars)
+ARG VITE_API_URL
+ARG VITE_CHECKOUT_URL
+ARG VITE_STRIPE_PUBLISHABLE_KEY
+ARG VITE_YOUTUBE_API_KEY
+
+ENV VITE_API_URL=$VITE_API_URL
+ENV VITE_CHECKOUT_URL=$VITE_CHECKOUT_URL
+ENV VITE_STRIPE_PUBLISHABLE_KEY=$VITE_STRIPE_PUBLISHABLE_KEY
+ENV VITE_YOUTUBE_API_KEY=$VITE_YOUTUBE_API_KEY
+
+RUN npm run build
+
+# ─── Stage 2: Serve (nginx) ────────────────────────────────────────
+FROM nginx:1.25-alpine AS runtime
+
+# Custom nginx config for SPA routing
+COPY nginx.conf /etc/nginx/conf.d/default.conf
+
+# Copy built assets from builder stage
+COPY --from=builder /app/dist /usr/share/nginx/html
+
+# Non-root user
+RUN addgroup -S appgroup && adduser -S appuser -G appgroup \
+ && chown -R appuser:appgroup /usr/share/nginx/html \
+ && chmod -R 755 /usr/share/nginx/html
+
+EXPOSE 80
+
+HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
+  CMD wget -qO- http://localhost/ || exit 1
+
+CMD ["nginx", "-g", "daemon off;"]

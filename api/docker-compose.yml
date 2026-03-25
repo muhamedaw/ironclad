@@ -1,0 +1,107 @@
+version: '3.9'
+
+services:
+
+  # ── MySQL Database ────────────────────────────────────────────
+  db:
+    image: mysql:8.0
+    container_name: ironclad_db
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: rootpassword
+      MYSQL_DATABASE: ironclad_db
+      MYSQL_USER: ironclad
+      MYSQL_PASSWORD: ironclad_pass
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./docker/mysql/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-prootpassword"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - ironclad_net
+
+  # ── Redis (optional — for future caching/sessions) ────────────
+  redis:
+    image: redis:7-alpine
+    container_name: ironclad_redis
+    restart: unless-stopped
+    command: redis-server --save 60 1 --loglevel warning
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+    networks:
+      - ironclad_net
+
+  # ── API Server ────────────────────────────────────────────────
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: runtime
+    container_name: ironclad_api
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      PORT: 4000
+      API_PREFIX: /api/v1
+      DB_HOST: db
+      DB_PORT: 3306
+      DB_NAME: ironclad_db
+      DB_USER: ironclad
+      DB_PASSWORD: ironclad_pass
+      # ⚠️  Override these with real secrets in production
+      JWT_SECRET: change_this_jwt_secret_min_64_characters_long_please_!!!
+      JWT_EXPIRES_IN: 7d
+      JWT_REFRESH_SECRET: change_this_refresh_secret_also_min_64_chars_!!!
+      JWT_REFRESH_EXPIRES_IN: 30d
+      BCRYPT_ROUNDS: 12
+      RATE_LIMIT_MAX: 100
+      ALLOWED_ORIGINS: http://localhost:5173
+    ports:
+      - "4000:4000"
+    volumes:
+      - api_logs:/app/logs
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - ironclad_net
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:4000/api/v1/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+
+  # ── Adminer (DB GUI for development) ─────────────────────────
+  adminer:
+    image: adminer:latest
+    container_name: ironclad_adminer
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    depends_on:
+      - db
+    networks:
+      - ironclad_net
+    profiles:
+      - dev  # only starts with: docker compose --profile dev up
+
+volumes:
+  mysql_data:
+  redis_data:
+  api_logs:
+
+networks:
+  ironclad_net:
+    driver: bridge

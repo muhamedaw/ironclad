@@ -1,0 +1,100 @@
+# render.yaml
+# ─────────────────────────────────────────────────────────────────────────────
+# Ironclad — Render.com Infrastructure-as-Code
+#
+# Deploy with: render blueprint sync --file render.yaml
+# Or paste into Render dashboard under "Blueprints"
+# ─────────────────────────────────────────────────────────────────────────────
+
+services:
+
+  # ── API Service ──────────────────────────────────────────────────────────
+  - type: web
+    name: ironclad-api
+    runtime: docker
+    dockerfilePath: ./docker/Dockerfile.api
+    dockerContext: ./api
+    plan: starter                 # starter=$7/mo | standard=$25/mo | pro=$85/mo
+    region: oregon                # oregon | ohio | frankfurt | singapore
+    branch: main
+    autoDeploy: true
+
+    healthCheckPath: /api/v1/health
+
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 4000
+      - key: DATABASE_URL
+        fromDatabase:
+          name: ironclad-mysql
+          property: connectionString
+      - key: REDIS_URL
+        fromService:
+          name: ironclad-redis
+          type: redis
+          property: connectionString
+      - key: JWT_SECRET
+        generateValue: true       # Render auto-generates a secure random value
+      - key: JWT_REFRESH_SECRET
+        generateValue: true
+      - key: FRONTEND_URL
+        sync: false               # Prompt user to fill in
+      - key: LOG_LEVEL
+        value: info
+
+  # ── Checkout Service ─────────────────────────────────────────────────────
+  - type: web
+    name: ironclad-checkout
+    runtime: docker
+    dockerfilePath: ./docker/Dockerfile.checkout
+    dockerContext: ./checkout-service
+    plan: starter
+    region: oregon
+    branch: main
+    autoDeploy: true
+
+    healthCheckPath: /api/v1/health
+
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 4002
+      - key: DATABASE_URL
+        fromDatabase:
+          name: ironclad-mysql
+          property: connectionString
+      - key: STRIPE_SECRET_KEY
+        sync: false               # Set manually in dashboard — never in git
+      - key: STRIPE_WEBHOOK_SECRET
+        sync: false
+      - key: STRIPE_PUBLISHABLE_KEY
+        sync: false
+      - key: PAYPAL_CLIENT_ID
+        sync: false
+      - key: PAYPAL_CLIENT_SECRET
+        sync: false
+      - key: PAYPAL_ENV
+        value: production
+      - key: FRONTEND_ORIGIN
+        sync: false
+      - key: LOG_LEVEL
+        value: info
+
+  # ── Redis ────────────────────────────────────────────────────────────────
+  - type: redis
+    name: ironclad-redis
+    plan: starter                 # 25MB free | starter=$10/mo
+    region: oregon
+    maxmemoryPolicy: allkeys-lru
+
+databases:
+  # ── Render Postgres alternative (MySQL is not native on Render)
+  # Use PlanetScale or Railway for MySQL — see deployment guide
+  #
+  # If using Render's Postgres:
+  # - type: pgsql
+  #   name: ironclad-db
+  #   plan: starter
